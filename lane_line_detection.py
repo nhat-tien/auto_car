@@ -120,9 +120,9 @@ def calculate_angle(num):
     if num < -max or num > max:
         return 1 if num > 0 else -1
     else:
-        return (1/max)*num
+        return (1/max**3)*(num**3)
 
-pid = PID(1.0, 0, 0, setpoint=0)
+pid = PID(0.5, 0, 0, setpoint=0)
 
 def calculate_control_signal(img, draw=None):
     """Calculate speed and steering angle
