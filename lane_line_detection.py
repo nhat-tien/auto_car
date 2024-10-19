@@ -10,20 +10,35 @@ def find_lane_lines(img):
     Returns a filtered image of road markings
     """
 
-    # Convert to gray scale
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    lower_white = np.array([0,0,70], dtype=np.uint8)
+    upper_white = np.array([0,0,255], dtype=np.uint8)
 
-    # Apply a Gaussian filter to remove noise
-    # You can experiment with other filters here.
-    img_gauss = cv2.GaussianBlur(gray, (11, 11), 0)
+    mask = cv2.inRange(hsv, lower_white, upper_white)
 
-    # Apply Canny edge detection
-    thresh_low = 150
-    thresh_high = 200
-    img_canny = cv2.Canny(img_gauss, thresh_low, thresh_high, apertureSize=3)
+    return mask 
 
-    # Return image
-    return img_canny
+# def find_lane_lines(img):
+#     """
+#     Detecting road markings
+#     This function will take a color image, in BGR color system,
+#     Returns a filtered image of road markings
+#     """
+#
+#     # Convert to gray scale
+#     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+#
+#     # Apply a Gaussian filter to remove noise
+#     # You can experiment with other filters here.
+#     img_gauss = cv2.GaussianBlur(gray, (11, 11), 0)
+#
+#     # Apply Canny edge detection
+#     thresh_low = 150
+#     thresh_high = 200
+#     img_canny = cv2.Canny(img_gauss, thresh_low, thresh_high, apertureSize=3)
+#
+#     # Return image
+#     return img_canny
 
 
 def birdview_transform(img):
@@ -45,31 +60,40 @@ def find_left_right_points(image, draw=None):
     im_height, im_width = image.shape[:2]
 
     # Consider the position 70% from the top of the image
-    # interested_line_y = int(im_height * 0.97)
+    # interested_line_y = int(im_height * 0.9)
     interested_line_y = im_height-1
+    higher_line_y = int(im_height*0.85)
     if draw is not None:
         cv2.line(draw, (0, interested_line_y),
                  (im_width, interested_line_y), (0, 0, 255), 2)
+        cv2.line(draw, (0, higher_line_y),
+                 (im_width, higher_line_y), (0, 0, 255), 2)
+    higher_line = image[higher_line_y, :]
     interested_line = image[interested_line_y, :]
 
+    higher_left_point = -1
+    higher_right_point = -1
+    higher_center_point = -1
     # Detect left/right points
     left_point = -1
     right_point = -1
-    lane_width = 100
+    lane_width = 150
     center = im_width // 2
     cv2.line(draw, (center, 0),
              (center, im_height), (0, 0, 255), 2)
 
-    # Traverse the two sides, find the first non-zero value pixels, and
-    # consider them as the position of the left and right lines
-    # for x in range(center, 0, -1):
-    #     if interested_line[x] > 0:
-    #         left_point = x
-    #         break
-    # for x in range(center + 1, im_width):
-    #     if interested_line[x] > 0:
-    #         right_point = x
-    #         break
+    for x in range(0, im_width):
+        if higher_line[x] > 0:
+            higher_left_point = x
+            break
+    for x in range(im_width - 1, 0, -1):
+        if higher_line[x] > 0:
+            higher_right_point = x
+            break
+
+    if higher_left_point != -1 and higher_right_point != -1:
+        higher_center_point = (higher_right_point + higher_left_point) // 2
+
     for x in range(0, im_width):
         if interested_line[x] > 0:
             left_point = x
@@ -79,16 +103,11 @@ def find_left_right_points(image, draw=None):
             right_point = x
             break
 
-    # if left_point > center and right_point > center: 
-    #     left_point = right_point - 100 
-    #
-    # if  right_point != -1 and right_point < center and left_point < center: 
-    #     right_point = left_point + 100
-    # if right_point - left_point < 30:
-    #     if left_point > center and right_point > center: 
-    #         left_point = right_point - 100 
-    #     if  right_point != -1 and right_point < center and left_point < center: 
-    #         right_point = left_point + 100
+    if right_point - left_point < 30:
+        if left_point > higher_center_point: 
+            left_point = right_point - lane_width
+        if  left_point < higher_center_point: 
+            right_point = left_point + lane_width
 
     # Predict right point when only see the left point
     # if left_point != -1 and right_point == -1:
@@ -106,6 +125,15 @@ def find_left_right_points(image, draw=None):
         if right_point != -1:
             draw = cv2.circle(
                 draw, (right_point, interested_line_y), 7, (0, 255, 0), -1)
+        if higher_right_point != -1:
+            draw = cv2.circle(
+                draw, (higher_right_point, higher_line_y), 7, (0, 255, 0), -1)
+        if higher_left_point != -1:
+            draw = cv2.circle(
+                draw, (higher_left_point, higher_line_y), 7, (255, 255, 0), -1)
+        if higher_center_point != -1:
+            draw = cv2.circle(
+                draw, (higher_center_point, higher_line_y), 7, (0, 255, 255), -1)
 
     return left_point, right_point
 
@@ -119,7 +147,7 @@ def calculate_control_signal(img, draw=None):
     img_lines = find_lane_lines(img)
     img_birdview = birdview_transform(img_lines)
     draw[:, :] = birdview_transform(draw)
-    left_point, right_point = find_left_right_points(img_lines, draw=draw)
+    left_point, right_point = find_left_right_points(img_birdview, draw=draw)
 
     # Calculate speed and steering angle
     # The speed is fixed to 50% of the max speed
@@ -137,7 +165,7 @@ def calculate_control_signal(img, draw=None):
         # Calculate steering angle
         # You can apply some advanced control algorithm here
         # For examples, PID
-        steering_angle = -pid(center_diff)
+        steering_angle = pid(center_diff)
 
     return throttle, steering_angle
 
