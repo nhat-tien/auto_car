@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from pid import PID 
+import json
 
 
 def find_lane_lines(img):
@@ -17,29 +18,6 @@ def find_lane_lines(img):
     mask = cv2.inRange(hsv, lower_white, upper_white)
 
     return mask 
-
-# def find_lane_lines(img):
-#     """
-#     Detecting road markings
-#     This function will take a color image, in BGR color system,
-#     Returns a filtered image of road markings
-#     """
-#
-#     # Convert to gray scale
-#     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-#
-#     # Apply a Gaussian filter to remove noise
-#     # You can experiment with other filters here.
-#     img_gauss = cv2.GaussianBlur(gray, (11, 11), 0)
-#
-#     # Apply Canny edge detection
-#     thresh_low = 150
-#     thresh_high = 200
-#     img_canny = cv2.Canny(img_gauss, thresh_low, thresh_high, apertureSize=3)
-#
-#     # Return image
-#     return img_canny
-
 
 def birdview_transform(img):
     """Apply bird-view transform to the image
@@ -137,6 +115,13 @@ def find_left_right_points(image, draw=None):
 
     return left_point, right_point
 
+def calculate_angle(num):
+    max = 20
+    if num < -max or num > max:
+        return 1 if num > 0 else -1
+    else:
+        return (1/max)*num
+
 pid = PID(1.0, 0, 0, setpoint=0)
 
 def calculate_control_signal(img, draw=None):
@@ -152,7 +137,7 @@ def calculate_control_signal(img, draw=None):
     # Calculate speed and steering angle
     # The speed is fixed to 50% of the max speed
     # You can try to calculate speed from turning angle
-    throttle = 0.2
+    throttle = 0.5
     steering_angle = 0
     im_center = img.shape[1] // 2
 
@@ -165,7 +150,7 @@ def calculate_control_signal(img, draw=None):
         # Calculate steering angle
         # You can apply some advanced control algorithm here
         # For examples, PID
-        steering_angle = pid(center_diff)
+        steering_angle = calculate_angle(pid(center_diff))
 
     return throttle, steering_angle
 
