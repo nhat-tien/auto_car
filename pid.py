@@ -5,7 +5,7 @@ class PID:
         self.kp = kp
         self.ki = ki
         self.kd = kd
-        self.setpointt = setpoint
+        self.setpoint = setpoint
 
         self.time_extract = time.monotonic
         self.last_time = self.time_extract()
@@ -13,7 +13,8 @@ class PID:
         self.integral = 0
 
     def __call__(self, state):
-        error = self.setpointt - state
+        error = self.setpoint - state
+        kd = 0 if abs(error) < 5 else self.kd
         d_state = state - (self.last_state if (self.last_state is not None) else state)
         d_error = -d_state
 

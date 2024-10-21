@@ -3,6 +3,30 @@ import numpy as np
 from pid import PID 
 import json
 
+THROTTLE = 1
+
+# KP = 0.0411
+# KI = 0.001
+# KD = 0.0152
+
+# Good 
+# KP = 0.6
+# KI = 0.01
+# KD = 0.7
+
+KP = 0.6 
+KI = 0.1
+KD = 0.4
+
+# 
+# KP = 0.9
+# KI = 1
+# KD = 1
+
+ANGLE_CONTROL_ENABLE = True
+MAX_ERROR_TO_FULL_ANGLE = 90
+
+LANE_WIDTH = 450
 
 def find_lane_lines(img):
     """
@@ -39,8 +63,10 @@ def find_left_right_points(image, draw=None):
 
     # Consider the position 70% from the top of the image
     # interested_line_y = int(im_height * 0.9)
-    interested_line_y = im_height-1
-    higher_line_y = int(im_height*0.85)
+    # interested_line_y = int(im_height*0.97)
+    # higher_line_y = int(im_height*0.85)
+    interested_line_y = int(im_height*0.9)
+    higher_line_y = int(im_height*0.65)
     if draw is not None:
         cv2.line(draw, (0, interested_line_y),
                  (im_width, interested_line_y), (0, 0, 255), 2)
@@ -55,7 +81,7 @@ def find_left_right_points(image, draw=None):
     # Detect left/right points
     left_point = -1
     right_point = -1
-    lane_width = 150
+    lane_width = LANE_WIDTH
     center = im_width // 2
     cv2.line(draw, (center, 0),
              (center, im_height), (0, 0, 255), 2)
@@ -113,16 +139,18 @@ def find_left_right_points(image, draw=None):
             draw = cv2.circle(
                 draw, (higher_center_point, higher_line_y), 7, (0, 255, 255), -1)
 
-    return left_point, right_point
+    return left_point, right_point 
 
 def calculate_angle(num):
-    max = 20
+    if not ANGLE_CONTROL_ENABLE:
+        return num
+    max = MAX_ERROR_TO_FULL_ANGLE
     if num < -max or num > max:
         return 1 if num > 0 else -1
     else:
-        return (1/max**3)*(num**3)
+        return (1/max)*(num)
 
-pid = PID(0.5, 0, 0, setpoint=0)
+pid = PID(KP, KI, KD, setpoint=0)
 
 def calculate_control_signal(img, draw=None):
     """Calculate speed and steering angle
@@ -130,14 +158,14 @@ def calculate_control_signal(img, draw=None):
 
     # Find left/right points
     img_lines = find_lane_lines(img)
-    img_birdview = birdview_transform(img_lines)
-    draw[:, :] = birdview_transform(draw)
-    left_point, right_point = find_left_right_points(img_birdview, draw=draw)
+    # img_birdview = birdview_transform(img_lines)
+    # draw[:, :] = birdview_transform(draw)
+    left_point, right_point = find_left_right_points(img_lines, draw=draw)
 
     # Calculate speed and steering angle
     # The speed is fixed to 50% of the max speed
     # You can try to calculate speed from turning angle
-    throttle = 0.5
+    throttle = THROTTLE
     steering_angle = 0
     im_center = img.shape[1] // 2
 
