@@ -1,9 +1,8 @@
 import cv2
 import numpy as np
-from pid import PID 
 import json
 
-THROTTLE = 1
+THROTTLE = 0.5
 
 # KP = 0.0411
 # KI = 0.001
@@ -14,11 +13,6 @@ THROTTLE = 1
 # KI = 0.01
 # KD = 0.7
 
-KP = 0.6 
-KI = 0.1
-KD = 0.4
-
-# 
 # KP = 0.9
 # KI = 1
 # KD = 1
@@ -26,7 +20,7 @@ KD = 0.4
 ANGLE_CONTROL_ENABLE = True
 MAX_ERROR_TO_FULL_ANGLE = 90
 
-LANE_WIDTH = 450
+LANE_WIDTH = 430
 
 def find_lane_lines(img):
     """
@@ -83,15 +77,15 @@ def find_left_right_points(image, draw=None):
     right_point = -1
     lane_width = LANE_WIDTH
     center = im_width // 2
-    cv2.line(draw, (center, 0),
-             (center, im_height), (0, 0, 255), 2)
+    # cv2.line(draw, (center, 0),
+    #          (center, im_height), (0, 0, 255), 2)
 
     for x in range(0, im_width):
-        if higher_line[x] > 0:
+        if higher_line[x] > 50:
             higher_left_point = x
             break
     for x in range(im_width - 1, 0, -1):
-        if higher_line[x] > 0:
+        if higher_line[x] > 50:
             higher_right_point = x
             break
 
@@ -99,11 +93,11 @@ def find_left_right_points(image, draw=None):
         higher_center_point = (higher_right_point + higher_left_point) // 2
 
     for x in range(0, im_width):
-        if interested_line[x] > 0:
+        if interested_line[x] > 50:
             left_point = x
             break
     for x in range(im_width - 1, 0, -1):
-        if interested_line[x] > 0:
+        if interested_line[x] > 50:
             right_point = x
             break
 
@@ -141,6 +135,44 @@ def find_left_right_points(image, draw=None):
 
     return left_point, right_point 
 
+def detect_turning_point(image, draw=None):
+    img = birdview_transform(image)
+    draw = img.copy()
+    im_height, im_width = img.shape[:2]
+    center = im_height // 2
+    left_vertical_line_x = int(im_width*0.35) 
+    right_vertical_line_x = int(im_width*0.65) 
+    if draw is not None:
+        cv2.line(draw, (left_vertical_line_x, 0),
+                 (left_vertical_line_x, im_height), (0, 0, 255), 2)
+        cv2.line(draw, (right_vertical_line_x, 0),
+                 (right_vertical_line_x, im_height), (0, 0, 255), 2)
+    left_vertical_line = img[ : ,left_vertical_line_x]
+    right_vertical_line = img[ : ,right_vertical_line_x]
+
+    left_turning_point = -1
+    right_turning_point = -1
+
+    for x in range(im_height-1, center, -1):
+        if left_vertical_line[x] > 50:
+            left_turning_point = x
+            break
+    for x in range(im_height-1, center, -1):
+        if right_vertical_line[x] > 50:
+            right_turning_point = x
+            break
+
+    if draw is not None:
+        if left_turning_point != -1:
+            draw = cv2.circle(
+                draw, (left_vertical_line_x, left_turning_point), 7, (255, 255, 0), -1)
+        if right_turning_point != -1:
+            draw = cv2.circle(
+                draw, (right_vertical_line_x, right_turning_point), 7, (255, 255, 0), -1)
+
+    return left_turning_point != -1 , right_turning_point != -1
+
+
 def calculate_angle(num):
     if not ANGLE_CONTROL_ENABLE:
         return num
@@ -150,9 +182,8 @@ def calculate_angle(num):
     else:
         return (1/max)*(num)
 
-pid = PID(KP, KI, KD, setpoint=0)
 
-def calculate_control_signal(img, draw=None):
+def calculate_control_signal(img, pid, turn, draw=None):
     """Calculate speed and steering angle
     """
 
@@ -160,7 +191,15 @@ def calculate_control_signal(img, draw=None):
     img_lines = find_lane_lines(img)
     # img_birdview = birdview_transform(img_lines)
     # draw[:, :] = birdview_transform(draw)
+    # new_draw = birdview_transform(draw.copy())
+    have_road_left, have_road_right = detect_turning_point(img_lines)
     left_point, right_point = find_left_right_points(img_lines, draw=draw)
+
+    if have_road_left and turn == "left":
+        left_point = left_point - 100
+        right_point = left_point + LANE_WIDTH
+    if have_road_right and turn == "right":
+        left_point = right_point - LANE_WIDTH
 
     # Calculate speed and steering angle
     # The speed is fixed to 50% of the max speed
