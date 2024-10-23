@@ -11,13 +11,11 @@ from multiprocessing import Queue, Process
 from traffic_sign_detection import detect_traffic_signs
 from lane_line_detection import calculate_control_signal
 from pid import PID 
+from parameter import KP, KI, KD
 
 # Initialize traffic sign classifier
 traffic_sign_model = cv2.dnn.readNetFromONNX("traffic_sign_classifier_lenet_v3.onnx")
 
-KP = 0.55
-KI = 0.01
-KD = 0.39
 
 g_image_queue = Queue(maxsize=5)
 traffic_sign_queue = Queue(maxsize=5)  # New queue for traffic sign messages
@@ -31,13 +29,17 @@ def process_traffic_sign_loop(image_queue, sign_queue):
             time.sleep(0.1)
             continue
         image = image_queue.get()
+        im_height, im_width = image.shape[:2]
+        y = 0
+        x = 200
+        image = image[y:im_height,x:x+700]
         # Prepare visualization image
         draw = image.copy()
         # Detect traffic signs
         detected_signs = detect_traffic_signs(image, traffic_sign_model, draw=draw)
         # Show the result to a window
-        # cv2.imshow("Traffic signs", draw)
-        # cv2.waitKey(1)
+        cv2.imshow("Traffic signs", draw)
+        cv2.waitKey(1)
         # If a stop sign is detected, send a message to the main process
         for sign in detected_signs:
             if sign[0]:
@@ -49,26 +51,26 @@ def controller(image, draw):
     global pid
     global turn
 
-    throttle, steering_angle, turned = calculate_control_signal(image, pid, turn, draw=draw)
-
-    print(turn)
+    throttle, steering_angle = calculate_control_signal(image, pid, turn, draw=draw)
 
     if stop:
         return -2, steering_angle
-    
+ 
     if not traffic_sign_queue.empty():
         match traffic_sign_queue.get():
             case "stop":
                 stop = True
                 throttle = -1
-            case "no_left" | "right":
-                turn = "right"
-            case "no_right" | "left":
-                turn = "left"
+            case "no_left":
+                turn = "no_left"
+            case "no_right":
+                turn = "no_right"
             case "straight":
                 turn = "straight"
-            case _:
-                turn = None
+            case "left":
+                turn = "left"
+            case "right":
+                turn = "right"
 
     return throttle, steering_angle
 

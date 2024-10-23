@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 import json
-
-THROTTLE = 0.5
+from calculate_control_signal import calculate_angle
+from parameter import ANGLE_CONTROL_ENABLE, MAX_ERROR_TO_FULL_ANGLE, LANE_WIDTH, THROTTLE
 
 # KP = 0.0411
 # KI = 0.001
@@ -17,10 +17,6 @@ THROTTLE = 0.5
 # KI = 1
 # KD = 1
 
-ANGLE_CONTROL_ENABLE = True
-MAX_ERROR_TO_FULL_ANGLE = 90
-
-LANE_WIDTH = 430
 
 def find_lane_lines(img):
     """
@@ -77,15 +73,15 @@ def find_left_right_points(image, draw=None):
     right_point = -1
     lane_width = LANE_WIDTH
     center = im_width // 2
-    # cv2.line(draw, (center, 0),
-    #          (center, im_height), (0, 0, 255), 2)
+    cv2.line(draw, (center, 0),
+             (center, im_height), (0, 0, 255), 2)
 
     for x in range(0, im_width):
-        if higher_line[x] > 50:
+        if higher_line[x] > 100:
             higher_left_point = x
             break
     for x in range(im_width - 1, 0, -1):
-        if higher_line[x] > 50:
+        if higher_line[x] > 100:
             higher_right_point = x
             break
 
@@ -93,11 +89,11 @@ def find_left_right_points(image, draw=None):
         higher_center_point = (higher_right_point + higher_left_point) // 2
 
     for x in range(0, im_width):
-        if interested_line[x] > 50:
+        if interested_line[x] > 100:
             left_point = x
             break
     for x in range(im_width - 1, 0, -1):
-        if interested_line[x] > 50:
+        if interested_line[x] > 100:
             right_point = x
             break
 
@@ -153,11 +149,11 @@ def detect_turning_point(image, draw=None):
     left_turning_point = -1
     right_turning_point = -1
 
-    for x in range(im_height-1, center, -1):
+    for x in range(im_height-1, center+100, -1):
         if left_vertical_line[x] > 50:
             left_turning_point = x
             break
-    for x in range(im_height-1, center, -1):
+    for x in range(im_height-1, center+100, -1):
         if right_vertical_line[x] > 50:
             right_turning_point = x
             break
@@ -171,16 +167,6 @@ def detect_turning_point(image, draw=None):
                 draw, (right_vertical_line_x, right_turning_point), 7, (255, 255, 0), -1)
 
     return left_turning_point != -1 , right_turning_point != -1
-
-
-def calculate_angle(num):
-    if not ANGLE_CONTROL_ENABLE:
-        return num
-    max = MAX_ERROR_TO_FULL_ANGLE
-    if num < -max or num > max:
-        return 1 if num > 0 else -1
-    else:
-        return (1/max)*(num)
 
 
 def calculate_control_signal(img, pid, turn, draw=None):
@@ -199,7 +185,15 @@ def calculate_control_signal(img, pid, turn, draw=None):
         left_point = left_point - 100
         right_point = left_point + LANE_WIDTH
     if have_road_right and turn == "right":
+        right_point = right_point + 100
         left_point = right_point - LANE_WIDTH
+    if have_road_right and have_road_left and turn == "no_left":
+        right_point = right_point + 100
+        left_point = right_point - LANE_WIDTH
+    if have_road_right and have_road_left and turn == "no_right":
+        left_point = left_point - 100
+        right_point = left_point + LANE_WIDTH
+
 
     # Calculate speed and steering angle
     # The speed is fixed to 50% of the max speed
@@ -217,7 +211,7 @@ def calculate_control_signal(img, pid, turn, draw=None):
         # Calculate steering angle
         # You can apply some advanced control algorithm here
         # For examples, PID
-        steering_angle = calculate_angle(pid(center_diff))
+        steering_angle = calculate_angle(pid(center_diff), ANGLE_CONTROL_ENABLE, MAX_ERROR_TO_FULL_ANGLE)
 
     return throttle, steering_angle
 

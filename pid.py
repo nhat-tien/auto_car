@@ -13,8 +13,9 @@ class PID:
         self.integral = 0
 
     def __call__(self, state):
+        state = self.noise_filter(state)
         error = self.setpoint - state
-        kd = 0 if abs(error) < 5 else self.kd
+        # kd = 0 if abs(error) < 5 else self.kd
         d_state = state - (self.last_state if (self.last_state is not None) else state)
         d_error = -d_state
 
@@ -35,3 +36,10 @@ class PID:
         self.last_state = state
 
         return control_signal
+
+    def noise_filter(self, state):
+        d_state = state - (self.last_state if (self.last_state is not None) else state)
+        if abs(d_state) > 30:
+            return self.last_state
+        else:
+            return state
