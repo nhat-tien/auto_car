@@ -2,7 +2,8 @@ import cv2
 import numpy as np
 import json
 from calculate_control_signal import calculate_angle
-from parameter import ANGLE_CONTROL_ENABLE, MAX_ERROR_TO_FULL_ANGLE, LANE_WIDTH, THROTTLE
+from find_left_right_points import find_left_right_points
+from parameter import ANGLE_CONTROL_ENABLE, MAX_ERROR_TO_FULL_ANGLE, LANE_WIDTH, THROTTLE, POSTION_WHEN_TURN
 
 # KP = 0.0411
 # KI = 0.001
@@ -26,7 +27,7 @@ def find_lane_lines(img):
     """
 
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    lower_white = np.array([0,0,70], dtype=np.uint8)
+    lower_white = np.array([0,0,100], dtype=np.uint8)
     upper_white = np.array([0,0,255], dtype=np.uint8)
 
     mask = cv2.inRange(hsv, lower_white, upper_white)
@@ -44,131 +45,6 @@ def birdview_transform(img):
     warped_img = cv2.warpPerspective(img, M, (IMAGE_W, IMAGE_H)) # Image warping
     return warped_img
 
-
-def find_left_right_points(image, draw=None):
-    """Find left and right points of lane
-    """
-
-    im_height, im_width = image.shape[:2]
-
-    # Consider the position 70% from the top of the image
-    # interested_line_y = int(im_height * 0.9)
-    # interested_line_y = int(im_height*0.97)
-    # higher_line_y = int(im_height*0.85)
-    interested_line_y = int(im_height*0.9)
-    higher_line_y = int(im_height*0.65)
-    if draw is not None:
-        cv2.line(draw, (0, interested_line_y),
-                 (im_width, interested_line_y), (0, 0, 255), 2)
-        cv2.line(draw, (0, higher_line_y),
-                 (im_width, higher_line_y), (0, 0, 255), 2)
-    higher_line = image[higher_line_y, :]
-    interested_line = image[interested_line_y, :]
-
-    higher_left_point = -1
-    higher_right_point = -1
-    higher_center_point = -1
-    # Detect left/right points
-    left_point = -1
-    right_point = -1
-    lane_width = LANE_WIDTH
-    center = im_width // 2
-    cv2.line(draw, (center, 0),
-             (center, im_height), (0, 0, 255), 2)
-
-    for x in range(0, im_width):
-        if higher_line[x] > 100:
-            higher_left_point = x
-            break
-    for x in range(im_width - 1, 0, -1):
-        if higher_line[x] > 100:
-            higher_right_point = x
-            break
-
-    if higher_left_point != -1 and higher_right_point != -1:
-        higher_center_point = (higher_right_point + higher_left_point) // 2
-
-    for x in range(0, im_width):
-        if interested_line[x] > 100:
-            left_point = x
-            break
-    for x in range(im_width - 1, 0, -1):
-        if interested_line[x] > 100:
-            right_point = x
-            break
-
-    if right_point - left_point < 30:
-        if left_point > higher_center_point: 
-            left_point = right_point - lane_width
-        if  left_point < higher_center_point: 
-            right_point = left_point + lane_width
-
-    # Predict right point when only see the left point
-    # if left_point != -1 and right_point == -1:
-    #     right_point = left_point + lane_width
-    #
-    # # Predict left point when only see the right point
-    # if right_point != -1 and left_point == -1:
-    #     left_point = right_point - lane_width
-
-    # Draw two points on the image
-    if draw is not None:
-        if left_point != -1:
-            draw = cv2.circle(
-                draw, (left_point, interested_line_y), 7, (255, 255, 0), -1)
-        if right_point != -1:
-            draw = cv2.circle(
-                draw, (right_point, interested_line_y), 7, (0, 255, 0), -1)
-        if higher_right_point != -1:
-            draw = cv2.circle(
-                draw, (higher_right_point, higher_line_y), 7, (0, 255, 0), -1)
-        if higher_left_point != -1:
-            draw = cv2.circle(
-                draw, (higher_left_point, higher_line_y), 7, (255, 255, 0), -1)
-        if higher_center_point != -1:
-            draw = cv2.circle(
-                draw, (higher_center_point, higher_line_y), 7, (0, 255, 255), -1)
-
-    return left_point, right_point 
-
-def detect_turning_point(image, draw=None):
-    img = birdview_transform(image)
-    draw = img.copy()
-    im_height, im_width = img.shape[:2]
-    center = im_height // 2
-    left_vertical_line_x = int(im_width*0.35) 
-    right_vertical_line_x = int(im_width*0.65) 
-    if draw is not None:
-        cv2.line(draw, (left_vertical_line_x, 0),
-                 (left_vertical_line_x, im_height), (0, 0, 255), 2)
-        cv2.line(draw, (right_vertical_line_x, 0),
-                 (right_vertical_line_x, im_height), (0, 0, 255), 2)
-    left_vertical_line = img[ : ,left_vertical_line_x]
-    right_vertical_line = img[ : ,right_vertical_line_x]
-
-    left_turning_point = -1
-    right_turning_point = -1
-
-    for x in range(im_height-1, center+100, -1):
-        if left_vertical_line[x] > 50:
-            left_turning_point = x
-            break
-    for x in range(im_height-1, center+100, -1):
-        if right_vertical_line[x] > 50:
-            right_turning_point = x
-            break
-
-    if draw is not None:
-        if left_turning_point != -1:
-            draw = cv2.circle(
-                draw, (left_vertical_line_x, left_turning_point), 7, (255, 255, 0), -1)
-        if right_turning_point != -1:
-            draw = cv2.circle(
-                draw, (right_vertical_line_x, right_turning_point), 7, (255, 255, 0), -1)
-
-    return left_turning_point != -1 , right_turning_point != -1
-
-
 def calculate_control_signal(img, pid, turn, draw=None):
     """Calculate speed and steering angle
     """
@@ -178,22 +54,7 @@ def calculate_control_signal(img, pid, turn, draw=None):
     # img_birdview = birdview_transform(img_lines)
     # draw[:, :] = birdview_transform(draw)
     # new_draw = birdview_transform(draw.copy())
-    have_road_left, have_road_right = detect_turning_point(img_lines)
-    left_point, right_point = find_left_right_points(img_lines, draw=draw)
-
-    if have_road_left and turn == "left":
-        left_point = left_point - 100
-        right_point = left_point + LANE_WIDTH
-    if have_road_right and turn == "right":
-        right_point = right_point + 100
-        left_point = right_point - LANE_WIDTH
-    if have_road_right and have_road_left and turn == "no_left":
-        right_point = right_point + 100
-        left_point = right_point - LANE_WIDTH
-    if have_road_right and have_road_left and turn == "no_right":
-        left_point = left_point - 100
-        right_point = left_point + LANE_WIDTH
-
+    left_point, right_point = find_left_right_points(img_lines, turn, draw=draw)
 
     # Calculate speed and steering angle
     # The speed is fixed to 50% of the max speed

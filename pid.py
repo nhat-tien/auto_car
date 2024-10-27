@@ -1,4 +1,6 @@
 import time
+from parameter import FILTER_NOISE
+from calculate_control_signal import calculate_angle
 
 class PID:
     def __init__(self, kp, ki, kd, setpoint):
@@ -11,6 +13,7 @@ class PID:
         self.last_time = self.time_extract()
         self.last_state = None
         self.integral = 0
+        self.close_integral = False
 
     def __call__(self, state):
         state = self.noise_filter(state)
@@ -26,11 +29,15 @@ class PID:
         # P
         proportional = self.kp*error
         # I
+        # if not self.close_integral:
         self.integral += self.ki*error*d_time
         # D
         derivative = self.kd*d_error/d_time
 
         control_signal = proportional + self.integral + derivative
+        # print(proportional,self.integral,derivative)
+
+        # self.close_integral = self.anti_windup(error, control_signal)
 
         self.last_time = now
         self.last_state = state
@@ -39,7 +46,13 @@ class PID:
 
     def noise_filter(self, state):
         d_state = state - (self.last_state if (self.last_state is not None) else state)
-        if abs(d_state) > 30:
+        if abs(d_state) > FILTER_NOISE:
             return self.last_state
         else:
             return state
+    
+    def anti_windup(self, error, control_signal_before):
+        control_signal_after = calculate_angle(control_signal_before, True, 60)
+        return control_signal_before != control_signal_after and (error * control_signal_before > 0)
+
+

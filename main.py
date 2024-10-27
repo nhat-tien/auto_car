@@ -31,8 +31,8 @@ def process_traffic_sign_loop(image_queue, sign_queue):
         image = image_queue.get()
         im_height, im_width = image.shape[:2]
         y = 0
-        x = 200
-        image = image[y:im_height,x:x+700]
+        x = 300
+        image = image[y:im_height,x:x+500]
         # Prepare visualization image
         draw = image.copy()
         # Detect traffic signs
@@ -41,10 +41,17 @@ def process_traffic_sign_loop(image_queue, sign_queue):
         cv2.imshow("Traffic signs", draw)
         cv2.waitKey(1)
         # If a stop sign is detected, send a message to the main process
+        # if detected_signs == []:
+        #     sign_queue.put("none")
+        # else:
+        #     for sign in detected_signs:
+        #         if sign[0]:
+        #             sign_queue.put(sign[0])
+        #         # if not sign_queue.full():
+
         for sign in detected_signs:
             if sign[0]:
-                if not sign_queue.full():
-                    sign_queue.put(sign[0])
+                sign_queue.put(sign[0])
 
 def controller(image, draw):
     global stop
@@ -54,10 +61,12 @@ def controller(image, draw):
     throttle, steering_angle = calculate_control_signal(image, pid, turn, draw=draw)
 
     if stop:
-        return -2, steering_angle
+        return -10, steering_angle
  
     if not traffic_sign_queue.empty():
-        match traffic_sign_queue.get():
+        sign = traffic_sign_queue.get()
+        # print(sign)
+        match sign:
             case "stop":
                 stop = True
                 throttle = -1

@@ -90,7 +90,7 @@ def detect_traffic_signs(img, model, draw=None):
             continue
 
         # Remove low confidence objects
-        if score < 0.5:
+        if score < 0.99:
             continue
 
         sign = classes[cls]
