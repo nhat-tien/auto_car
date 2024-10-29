@@ -16,7 +16,7 @@ class PID:
         self.close_integral = False
 
     def __call__(self, state):
-        # state = self.noise_filter(state)
+        state = self.noise_filter(state)
         error = self.setpoint - state
         # kd = 0 if abs(error) < 5 else self.kd
         d_state = state - (self.last_state if (self.last_state is not None) else state)
@@ -33,11 +33,14 @@ class PID:
         self.integral += self.ki*error*d_time
         # D
         derivative = self.kd*d_error/d_time
+       
 
-        control_signal = proportional + self.integral + derivative
+        control_signal = proportional + derivative
+        if not self.close_integral:
+            control_signal += self.integral
         # print(proportional,self.integral,derivative)
 
-        # self.close_integral = self.anti_windup(error, control_signal)
+        self.close_integral = self.anti_windup(error, control_signal)
 
         self.last_time = now
         self.last_state = state

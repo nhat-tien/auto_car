@@ -21,9 +21,11 @@ g_image_queue = Queue(maxsize=5)
 traffic_sign_queue = Queue(maxsize=5)  # New queue for traffic sign messages
 stop = False
 turn = None
+timer = 0
 pid = PID(KP, KI, KD, setpoint=0)
 
 def process_traffic_sign_loop(image_queue, sign_queue):
+    global timer
     while True:
         if image_queue.empty():
             time.sleep(0.1)
@@ -48,18 +50,18 @@ def process_traffic_sign_loop(image_queue, sign_queue):
         #         if sign[0]:
         #             sign_queue.put(sign[0])
         #         # if not sign_queue.full():
-        # if detected_signs == []: 
-        #     if timer == 0:
-        #         sign_queue.put("none")
-        #     else: 
-        #         timer-=1
-        # else:
-        #     for sign in detected_signs:
-        #         sign_queue.put(sign[0])
-        #         timer = 50
-        for sign in detected_signs:
-            if sign[0]:
+        if detected_signs == []: 
+            if timer == 0:
+                sign_queue.put("none")
+            else: 
+                timer -= 1
+        else:
+            for sign in detected_signs:
                 sign_queue.put(sign[0])
+                timer = 8
+        # for sign in detected_signs:
+        #     if sign[0]:
+        #         sign_queue.put(sign[0])
 
 def controller(image, draw):
     global stop
@@ -68,26 +70,30 @@ def controller(image, draw):
 
     throttle, steering_angle = calculate_control_signal(image, pid, turn, draw=draw)
 
-    if stop:
-        return -10, steering_angle
+    # if stop:
+    #     return -10, steering_angle
  
     if not traffic_sign_queue.empty():
         sign = traffic_sign_queue.get()
         # print(sign)
         match sign:
-            case "stop":
-                stop = True
-                throttle = -1
+            # case "stop":
+            #     stop = True
+            #     throttle = -1
             case "no_left":
                 turn = "no_left"
+                throttle = 0.6
             case "no_right":
                 turn = "no_right"
+                throttle = 0.6
             case "straight":
                 turn = "straight"
             case "left":
                 turn = "left"
+                throttle = 0.6
             case "right":
                 turn = "right"
+                throttle = 0.6
 
     return throttle, steering_angle
 
