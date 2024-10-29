@@ -27,7 +27,7 @@ def find_lane_lines(img):
     """
 
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    lower_white = np.array([0,0,100], dtype=np.uint8)
+    lower_white = np.array([0,0,10], dtype=np.uint8)
     upper_white = np.array([0,0,255], dtype=np.uint8)
 
     mask = cv2.inRange(hsv, lower_white, upper_white)
@@ -54,6 +54,7 @@ def calculate_control_signal(img, pid, turn, draw=None):
     # img_birdview = birdview_transform(img_lines)
     # draw[:, :] = birdview_transform(draw)
     # new_draw = birdview_transform(draw.copy())
+    # image = birdview_transform(img_lines)
     left_point, right_point = find_left_right_points(img_lines, turn, draw=draw)
 
     # Calculate speed and steering angle

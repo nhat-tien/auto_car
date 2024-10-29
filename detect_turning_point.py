@@ -1,18 +1,16 @@
 import cv2
 
 def detect_turning_point(img, draw=None):
-    # img = birdview_transform(image)
-    # draw = img.copy()
     im_height, im_width = img.shape[:2]
     center = im_height // 2
     center_width = im_width // 2
-    left_vertical_line_x = int(30) 
-    right_vertical_line_x = int(im_width-30) 
-    bottom_vertical_y = center + 140
-    top_vertical_y = center + 50
-    horizon_y = center + 170
-    distance_between_center_and_horizon_line = 140
-    horizon_line_width = 100
+    left_vertical_line_x = int(75) 
+    right_vertical_line_x = int(im_width-75) 
+    bottom_vertical_y = center + 170
+    top_vertical_y = center  
+    horizon_y = im_height - 5
+    distance_between_center_and_horizon_line = 118
+    horizon_line_width = 200
     horizon_line_left_start = center_width - distance_between_center_and_horizon_line - horizon_line_width
     horizon_line_left_end = horizon_line_left_start + horizon_line_width
     horizon_line_right_start = center_width + distance_between_center_and_horizon_line 
@@ -64,11 +62,13 @@ def detect_turning_point(img, draw=None):
         if bottom_left_turning_point != -1:
             draw = cv2.circle(
                 draw, (bottom_left_turning_point, horizon_y), 7, (255, 255, 0), -1)
-        if bottom_right_turning_point != -1:
+        # if bottom_right_turning_point != -1:
             draw = cv2.circle(
                 draw, (bottom_right_turning_point, horizon_y), 7, (255, 255, 0), -1)
 
     # cv2.imshow("Traffic signs", draw)
     # cv2.waitKey(1)
 
-    return top_left_turning_point != -1 and bottom_left_turning_point == -1, top_right_turning_point != -1 and bottom_right_turning_point == -1
+    return bottom_left_turning_point == -1, bottom_right_turning_point == -1
+    # return top_left_turning_point != -1 and bottom_left_turning_point == -1, bottom_right_turning_point == -1 and top_right_turning_point != -1
+    # return top_left_turning_point != -1,  top_right_turning_point != -1

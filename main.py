@@ -48,7 +48,15 @@ def process_traffic_sign_loop(image_queue, sign_queue):
         #         if sign[0]:
         #             sign_queue.put(sign[0])
         #         # if not sign_queue.full():
-
+        # if detected_signs == []: 
+        #     if timer == 0:
+        #         sign_queue.put("none")
+        #     else: 
+        #         timer-=1
+        # else:
+        #     for sign in detected_signs:
+        #         sign_queue.put(sign[0])
+        #         timer = 50
         for sign in detected_signs:
             if sign[0]:
                 sign_queue.put(sign[0])

@@ -16,7 +16,7 @@ class PID:
         self.close_integral = False
 
     def __call__(self, state):
-        state = self.noise_filter(state)
+        # state = self.noise_filter(state)
         error = self.setpoint - state
         # kd = 0 if abs(error) < 5 else self.kd
         d_state = state - (self.last_state if (self.last_state is not None) else state)
