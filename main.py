@@ -58,7 +58,7 @@ def process_traffic_sign_loop(image_queue, sign_queue):
         else:
             for sign in detected_signs:
                 sign_queue.put(sign[0])
-                timer = 8
+                timer = 20
         # for sign in detected_signs:
         #     if sign[0]:
         #         sign_queue.put(sign[0])
@@ -82,18 +82,20 @@ def controller(image, draw):
             #     throttle = -1
             case "no_left":
                 turn = "no_left"
-                throttle = 0.6
+                throttle = 0.4
             case "no_right":
                 turn = "no_right"
-                throttle = 0.6
+                throttle = 0.4
             case "straight":
                 turn = "straight"
             case "left":
                 turn = "left"
-                throttle = 0.6
+                throttle = 0.4
             case "right":
                 turn = "right"
-                throttle = 0.6
+                throttle = 0.4
+            # case _: 
+            #     turn = "none"
 
     return throttle, steering_angle
 
