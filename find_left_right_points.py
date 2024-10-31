@@ -72,6 +72,14 @@ def find_left_right_points(image, turn, draw=None):
 
     print(left_turn, right_turn)
     # print(turn)
+    # if turn == "left":
+    #     right_point = left_point + LANE_WIDTH
+    # if turn == "right":
+    #     left_point = right_point - LANE_WIDTH
+    # if turn == "no_left":
+    #     left_point = right_point - LANE_WIDTH
+    # if turn == "no_right":
+    #     right_point = left_point + LANE_WIDTH
 
     if left_turn and turn == "left":
         left_point = 0
