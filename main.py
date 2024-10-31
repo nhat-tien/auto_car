@@ -11,7 +11,7 @@ from multiprocessing import Queue, Process
 from traffic_sign_detection import detect_traffic_signs
 from lane_line_detection import calculate_control_signal
 from pid import PID 
-from parameter import KP, KI, KD, THROTTLE_WHEN_SEE_SIGN
+from parameter import KP, KI, KD, THROTTLE_WHEN_SEE_SIGN, TIME_KEEP_SIGN
 
 # Initialize traffic sign classifier
 traffic_sign_model = cv2.dnn.readNetFromONNX("traffic_sign_classifier_lenet_v3.onnx")
@@ -58,7 +58,7 @@ def process_traffic_sign_loop(image_queue, sign_queue):
         else:
             for sign in detected_signs:
                 sign_queue.put(sign[0])
-                timer = 10
+                timer = TIME_KEEP_SIGN
         # for sign in detected_signs:
         #     if sign[0]:
         #         sign_queue.put(sign[0])
@@ -94,8 +94,6 @@ def controller(image, draw):
             case "right":
                 turn = "right"
                 throttle = THROTTLE_WHEN_SEE_SIGN
-            # case _: 
-            #     turn = "none"
 
     return throttle, steering_angle
 
