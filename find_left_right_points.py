@@ -70,7 +70,7 @@ def find_left_right_points(image, turn, draw=None):
 
     left_turn, right_turn = detect_turning_point(image, draw=draw)
 
-    print(left_turn, right_turn)
+    # print(left_turn, right_turn)
     # print(turn)
 
     if left_turn and turn == "left":

@@ -20,14 +20,9 @@ from parameter import ANGLE_CONTROL_ENABLE, MAX_ERROR_TO_FULL_ANGLE, LANE_WIDTH,
 
 
 def find_lane_lines(img):
-    """
-    Detecting road markings
-    This function will take a color image, in BGR color system,
-    Returns a filtered image of road markings
-    """
 
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    lower_white = np.array([0,0,10], dtype=np.uint8)
+    lower_white = np.array([0,0,5], dtype=np.uint8)
     upper_white = np.array([0,0,255], dtype=np.uint8)
 
     mask = cv2.inRange(hsv, lower_white, upper_white)
