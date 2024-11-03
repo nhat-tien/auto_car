@@ -34,14 +34,14 @@ def process_traffic_sign_loop(image_queue, sign_queue):
         im_height, im_width = image.shape[:2]
         y = 0
         x = 300
-        image = image[y:im_height,x:x+500]
+        image = image[y:im_height,x:x+550]
         # Prepare visualization image
         draw = image.copy()
         # Detect traffic signs
         detected_signs = detect_traffic_signs(image, traffic_sign_model, draw=draw)
         # Show the result to a window
-        # cv2.imshow("Traffic signs", draw)
-        # cv2.waitKey(1)
+        cv2.imshow("Traffic signs", draw)
+        cv2.waitKey(1)
         # If a stop sign is detected, send a message to the main process
         # if detected_signs == []:
         #     sign_queue.put("none")
