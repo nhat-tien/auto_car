@@ -97,8 +97,8 @@ def controller(image, draw):
 
     return throttle, steering_angle
 
-async def process_image(websocket, path):
-    async for message in websocket:
+async def process_image(conn):
+    async for message in conn:
         # Get image from simulation
         data = json.loads(message)
         image = Image.open(BytesIO(base64.b64decode(data["image"])))
@@ -118,12 +118,12 @@ async def process_image(websocket, path):
         # Send back throttle and steering angle
         message = json.dumps({"throttle": throttle, "steering": steering_angle})
         # print(message)
-        await websocket.send(message)
+        await conn.send(message)
 
 
 async def main():
-    async def handler(websocket, path):
-        await process_image(websocket, path)
+    async def handler(websocket):
+        await process_image(websocket)
 
     async with websockets.serve(handler, "0.0.0.0", 4567, ping_interval=None):
         await asyncio.Future()  # run forever
