@@ -1,5 +1,5 @@
 import cv2
-from detect_turning_point import detect_turning_point
+from lib.detect_turning_point import detect_turning_point
 from parameter import LANE_WIDTH, POSTION_WHEN_TURN
 
 def find_left_right_points(image, turn, draw=None):

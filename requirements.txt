@@ -1,2 +1,5 @@
-numpy opencv-python websockets Pillow
+numpy 
+opencv-python 
+websockets 
+Pillow
 

@@ -8,9 +8,9 @@ import numpy as np
 import base64
 from io import BytesIO
 from multiprocessing import Queue, Process
-from traffic_sign_detection import detect_traffic_signs
-from lane_line_detection import calculate_control_signal
-from pid import PID 
+from lib.traffic_sign_detection import detect_traffic_signs
+from controller import calculate_control_signal
+from lib.pid import PID 
 from parameter import KP, KI, KD, THROTTLE_WHEN_SEE_SIGN, TIME_KEEP_SIGN
 
 # Initialize traffic sign classifier
