@@ -1,6 +1,6 @@
 import time
 from parameter import FILTER_NOISE
-from calculate_control_signal import calculate_angle
+from lib.calculate_angle import calculate_angle
 
 class PID:
     def __init__(self, kp, ki, kd, setpoint):
@@ -19,6 +19,8 @@ class PID:
         state = self.noise_filter(state)
         error = self.setpoint - state
         # kd = 0 if abs(error) < 5 else self.kd
+        if abs(error) < 5:
+            error = 0
         d_state = state - (self.last_state if (self.last_state is not None) else state)
         d_error = -d_state
 

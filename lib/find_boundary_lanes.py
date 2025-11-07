@@ -21,3 +21,19 @@ def find_boundary_lines(img):
     boundary = cv2.Canny(boundary, 20, 80)
 
     return boundary
+
+
+
+def highlight_gray_area(img):
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+    lower_gray = np.array([0, 0, 40], dtype=np.uint8)
+    upper_gray = np.array([180, 60, 200], dtype=np.uint8)
+
+    mask_gray = cv2.inRange(hsv, lower_gray, upper_gray)
+
+    kernel = np.ones((5, 5), np.uint8)
+    mask_gray = cv2.morphologyEx(mask_gray, cv2.MORPH_CLOSE, kernel)
+    mask_gray = cv2.morphologyEx(mask_gray, cv2.MORPH_OPEN, kernel)
+
+    return mask_gray

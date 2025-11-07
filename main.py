@@ -8,6 +8,7 @@ import numpy as np
 import base64
 from io import BytesIO
 from multiprocessing import Queue, Process
+from lib.find_boundary_lanes import  highlight_gray_area
 from lib.traffic_sign_detection import detect_traffic_signs
 from controller import calculate_control_signal
 from lib.pid import PID 
@@ -33,15 +34,15 @@ def process_traffic_sign_loop(image_queue, sign_queue):
         image = image_queue.get()
         im_height, im_width = image.shape[:2]
         y = 0
-        x = 300
-        image = image[y:im_height,x:x+550]
+        x = 500
+        image = image[100:im_height,x:x+550]
         # Prepare visualization image
         draw = image.copy()
         # Detect traffic signs
         detected_signs = detect_traffic_signs(image, traffic_sign_model, draw=draw)
         # Show the result to a window
-        cv2.imshow("Traffic signs", draw)
-        cv2.waitKey(1)
+        # cv2.imshow("Traffic signs", draw)
+        # cv2.waitKey(1)
         # If a stop sign is detected, send a message to the main process
         # if detected_signs == []:
         #     sign_queue.put("none")
@@ -62,6 +63,17 @@ def process_traffic_sign_loop(image_queue, sign_queue):
         # for sign in detected_signs:
         #     if sign[0]:
         #         sign_queue.put(sign[0])
+
+# def test_find_boundary_lanes(image_queue, sign_queue):
+#     while True:
+#         if image_queue.empty():
+#             time.sleep(0.1)
+#             continue
+#         image = image_queue.get()
+#         img_copy = image.copy()
+#         draw = highlight_gray_area(img_copy)
+#         cv2.imshow("Boudary", draw)
+#         cv2.waitKey(1)
 
 def controller(image, draw):
     global stop
@@ -130,6 +142,7 @@ async def main():
 
 if __name__ == '__main__':
     p = Process(target=process_traffic_sign_loop, args=(g_image_queue, traffic_sign_queue))
+    # p = Process(target=test_find_boundary_lanes, args=(g_image_queue, traffic_sign_queue))
     p.start()
     try:
         asyncio.run(main())

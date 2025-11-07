@@ -1,7 +1,9 @@
 import cv2
+from lib.find_boundary_lanes import highlight_gray_area
 import numpy as np
 import json
 from lib.find_left_right_points import find_left_right_points
+from lib.calculate_angle import calculate_angle
 from parameter import (
     ANGLE_CONTROL_ENABLE,
     MAX_ERROR_TO_FULL_ANGLE,
@@ -10,15 +12,6 @@ from parameter import (
     POSTION_WHEN_TURN,
 )
 
-
-def calculate_angle(num, angle_control_enable, max_error_to_full_angle):
-    if not angle_control_enable:
-        return num
-    max = max_error_to_full_angle
-    if num < -max or num > max:
-        return 1 if num > 0 else -1
-    else:
-        return (1/max)*(num)
 
 def find_lane_lines(img):
 
@@ -33,9 +26,11 @@ def find_lane_lines(img):
 def calculate_control_signal(img, pid, turn, draw=None):
     """Calculate speed and steering angle
     """
+    print(turn)
 
     # Find left/right points
-    img_lines = find_lane_lines(img)
+    # img_lines = find_lane_lines(img)
+    img_lines = highlight_gray_area(img)
     # img_birdview = birdview_transform(img_lines)
     # draw[:, :] = birdview_transform(draw)
     # new_draw = birdview_transform(draw.copy())
