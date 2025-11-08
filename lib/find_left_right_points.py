@@ -19,10 +19,12 @@ def find_left_right_points(image, turn, draw=None):
     right_point = -1
     center = im_width // 2
 
+
     for x in range(0, im_width):
         if interested_line[x] > 100:
             left_point = x
             break
+
     for x in range(im_width - 1, 0, -1):
         if interested_line[x] > 100:
             right_point = x
@@ -39,7 +41,8 @@ def find_left_right_points(image, turn, draw=None):
             if  right_point > int(center*1.75): 
                 right_point = left_point + LANE_WIDTH
 
-
+    if turn == "none":
+        turn = "right"
 
     left_turn, right_turn = detect_turning_point(image, draw=draw)
     # left_turn = False
